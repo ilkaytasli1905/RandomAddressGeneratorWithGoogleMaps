@@ -36,6 +36,7 @@ function deletePolygon() {
 }
 
 function createPoint() {
+    pointArray = [];
     pointCount = parseInt($("#pointCount").val());
     getRandomPointInRange();
 }
@@ -102,7 +103,7 @@ function getPointAddress(point) {
         if (status === "OK") {
             if (results) {
                 for (let result of results) {
-                    if (result.address_components.length >= 6 && result.geometry.location_type == 'ROOFTOP') {
+                    if (result.address_components.length == 7 && result.geometry.location_type == 'ROOFTOP') {
                         pointArray.push(result);
                         break;
                     }
@@ -119,12 +120,19 @@ function getPointAddress(point) {
 }
 
 function createExcel() {    
-    var Results = [
-        ["Col1", "Col2", "Col3", "Col4"],
-        ["Data", 50, 100, 500],
-        ["Data", -100, 20, 100],
-    ];
+    var Results = [];
 
+    pointArray.forEach(function (RowItem, RowIndex) {
+        var object = [];
+        object.push(RowItem.address_components[2].long_name);
+        object.push(RowItem.address_components[1].long_name);
+        object.push(RowItem.address_components[0].long_name);
+        object.push(RowItem.address_components[3].long_name);
+        object.push(RowItem.address_components[4].long_name);
+        object.push(RowItem.address_components[5].long_name);
+        object.push(RowItem.address_components[6].long_name);
+        Results.push(object);
+    });
     var CsvString = "";
     Results.forEach(function (RowItem, RowIndex) {
         RowItem.forEach(function (ColItem, ColIndex) {
