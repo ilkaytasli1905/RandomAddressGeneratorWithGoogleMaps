@@ -1,11 +1,9 @@
-﻿// Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your Javascript code.
-var selectedPolygon = null;
+﻿var selectedPolygon = null;
 let map;
 let drawingManager;
 let geocoder;
+var pointArray = [];
+var pointCount = 0;
 function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         //Lat Lng of Turkey center point
@@ -29,24 +27,6 @@ function initMap() {
     });
 }
 
-function getRandomPointInRange() {
-    var point = createRandomPoint(getPolygonRange(),3);
-    return getPointAddress(point);
-}
-
-function createRandomPoint(range, fixed) {
-    var point = {};
-    point.latTemp = (Math.random() * (range.MaxLat - range.MinLat) + range.MinLat).toFixed(fixed) * 1;
-    point.lngTemp = (Math.random() * (range.MaxLng - range.MinLng) + range.MinLng).toFixed(fixed) * 1;
-    Object.defineProperty(point, "lat", {
-        value: function () { return point.latTemp; }
-    });
-    Object.defineProperty(point, "lng", {
-        value: function () { return point.lngTemp; }
-    });
-    return isPolygonContainsPoint(createPolygonForContainsMethod(), point) ? point : createRandomPoint(range, fixed);
-}
-
 function deletePolygon() {
     if (selectedPolygon != null) {
         selectedPolygon.overlay.setMap(null);
@@ -55,44 +35,15 @@ function deletePolygon() {
     }
 }
 
-function isPolygonContainsPoint(polygon, point) {
-    return google.maps.geometry.poly.containsLocation(
-        point,
-        polygon
-    );
-}
-
-function getPointAddress(point) {
-    const latlng = {
-        lat: parseFloat(point.lat()),
-        lng: parseFloat(point.lng()),
-    };
-  
-    
-    //geocoder.geocode({ location: latlng }, function(results, status) {
-    //    if (status === "OK") {
-    //        if (results[0]) {
-    //        } else {
-    //        }
-    //    } else {
-    //    }
-    //});
-}
-
 function createPoint() {
-    var point = getRandomPointInRange();
-    //new google.maps.Marker({
-    //    position: point,
-    //    map,
-    //    icon: {
-    //        path: resultPath,
-    //        fillColor: resultColor,
-    //        fillOpacity: 0.2,
-    //        strokeColor: "white",
-    //        strokeWeight: 0.5,
-    //        scale: 10,
-    //    },
-    //});
+    pointCount = parseInt($("#pointCount").val());
+    getRandomPointInRange();
+}
+
+
+function getRandomPointInRange() {
+    var point = createRandomPoint(getPolygonRange(),3);
+    getPointAddress(point);
 }
 
 function getPolygonRange() {
@@ -120,3 +71,71 @@ function createPolygonForContainsMethod() {
     return new google.maps.Polygon({ paths: array });
 }
 
+function createRandomPoint(range, fixed) {
+    var point = {};
+    point.latTemp = (Math.random() * (range.MaxLat - range.MinLat) + range.MinLat).toFixed(fixed) * 1;
+    point.lngTemp = (Math.random() * (range.MaxLng - range.MinLng) + range.MinLng).toFixed(fixed) * 1;
+    Object.defineProperty(point, "lat", {
+        value: function () { return point.latTemp; }
+    });
+    Object.defineProperty(point, "lng", {
+        value: function () { return point.lngTemp; }
+    });
+    return isPolygonContainsPoint(createPolygonForContainsMethod(), point) ? point : createRandomPoint(range, fixed);
+}
+
+function isPolygonContainsPoint(polygon, point) {
+    return google.maps.geometry.poly.containsLocation(
+        point,
+        polygon
+    );
+}
+
+function getPointAddress(point) {
+    const latlng = {
+        lat: parseFloat(point.lat()),
+        lng: parseFloat(point.lng()),
+    };
+  
+    
+    geocoder.geocode({ location: latlng }, function(results, status) {
+        if (status === "OK") {
+            if (results) {
+                for (let result of results) {
+                    if (result.address_components.length >= 6 && result.geometry.location_type == 'ROOFTOP') {
+                        pointArray.push(result);
+                        break;
+                    }
+                }
+            } 
+        }
+        if (pointArray.length < pointCount) {
+            getRandomPointInRange();
+        }
+        else {
+            createExcel();
+        }
+    });
+}
+
+function createExcel() {    
+    var Results = [
+        ["Col1", "Col2", "Col3", "Col4"],
+        ["Data", 50, 100, 500],
+        ["Data", -100, 20, 100],
+    ];
+
+    var CsvString = "";
+    Results.forEach(function (RowItem, RowIndex) {
+        RowItem.forEach(function (ColItem, ColIndex) {
+            CsvString += ColItem + ',';
+        });
+        CsvString += "\r\n";
+    });
+    CsvString = "data:text/csv;charset=utf-8,\uFEFF" + encodeURIComponent(CsvString);
+    var x = document.createElement("a");
+    x.setAttribute("href", CsvString);
+    x.setAttribute("download", "somedata.csv");
+    document.body.appendChild(x);
+    x.click();
+}
